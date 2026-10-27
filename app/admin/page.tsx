@@ -65,7 +65,7 @@ function Admin({ k, r }: { k: string; r: string }) {
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <span className="display" style={{ fontSize: 24 }}>{room ? PHASE_LABEL[ph] : "未作成"}</span>
           {left !== null && <span className="chip" style={{ fontSize: 18 }}>⏱ {mmss(left)}</span>}
-          {["post", "react", "vote"].includes(ph) && <span className="chip">完了 {doneN}/{room?.expected}</span>}
+          {["post", "react", "vote", "free"].includes(ph) && <span className="chip">完了 {doneN}/{room?.expected}</span>}
           <span className="chip">参加 {board.participants.length}人</span>
           <span className="chip">投稿 {room?.post_count ?? 0}</span>
         </div>
@@ -91,7 +91,7 @@ function Admin({ k, r }: { k: string; r: string }) {
               <button className="btn" disabled={busy} onClick={() => act("stopTimer")}>⏸ タイマー止める</button>
             </>
           )}
-          {room && !room.phase_ends_at && ["post", "react", "vote"].includes(ph) && (
+          {room && !room.phase_ends_at && ["post", "react", "vote", "free"].includes(ph) && (
             <button className="btn" disabled={busy} onClick={() => act("extend", { seconds: 120 })}>⏱ タイマー2分</button>
           )}
         </div>

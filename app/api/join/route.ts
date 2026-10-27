@@ -1,4 +1,4 @@
-import { db, ensureRoom, fail, ok, readJson, roomOk, sha, token, who } from "@/lib/server";
+import { db, ensureRoom, fail, maybeStart, ok, readJson, roomOk, sha, token, who } from "@/lib/server";
 
 export async function POST(req: Request) {
   const b = await readJson(req);
@@ -20,5 +20,6 @@ export async function POST(req: Request) {
   if (error || !p) return fail("参加できませんでした", 500);
   const secret = token();
   await db().from("participant_secrets").insert({ participant_id: p.id, secret_hash: sha(secret) });
-  return ok({ pid: p.id, secret, nickname });
+  const started = await maybeStart(b.r);
+  return ok({ pid: p.id, secret, nickname, started });
 }

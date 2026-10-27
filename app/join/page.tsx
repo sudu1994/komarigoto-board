@@ -580,7 +580,7 @@ function Wall(p: BodyProps) {
           );
         })}
       </div>
-      {(ph === "react" || ph === "vote") && <DoneBar {...p} label={ph === "vote" ? "投票おわり！完了" : "反応した！完了"} />}
+      {(ph === "react" || ph === "vote" || ph === "free") && <DoneBar {...p} label={ph === "vote" ? "投票おわり！完了" : ph === "free" ? "話せた！完了" : "反応した！完了"} />}
     </div>
   );
 }

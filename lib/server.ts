@@ -2,7 +2,8 @@ import "server-only";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { createHash, randomBytes, timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
-import { nextPhase, PHASE_SECONDS, Phase } from "./phases";
+import { generateThemes } from "./themes";
+import { DEFAULT_EXPECTED, nextPhase, PHASE_SECONDS, Phase, TIMED_PHASES } from "./phases";
 
 let _db: SupabaseClient | null = null;
 export function db() {
@@ -35,7 +36,7 @@ export function adminOk(k: unknown) {
 export async function ensureRoom(r: string) {
   const { data } = await db().from("rooms").select("*").eq("id", r).maybeSingle();
   if (data) return data;
-  const { data: created } = await db().from("rooms").upsert({ id: r }).select("*").single();
+  const { data: created } = await db().from("rooms").upsert({ id: r, expected: DEFAULT_EXPECTED }).select("*").single();
   return created;
 }
 
@@ -71,11 +72,32 @@ export async function maybeAdvance(r: string) {
   const room = await getRoom(r);
   if (!room) return false;
   const nxt = nextPhase(room.phase);
-  if (!nxt || !["post", "react", "vote"].includes(room.phase)) return false;
+  if (!nxt || !TIMED_PHASES.includes(room.phase)) return false;
   const timeUp = room.phase_ends_at && new Date(room.phase_ends_at).getTime() <= Date.now();
   const { count } = await db().from("done").select("*", { count: "exact", head: true }).eq("room_id", r).eq("phase", room.phase);
   const allDone = (count ?? 0) >= room.expected;
-  if (timeUp || allDone) return setPhase(r, nxt, room.phase);
+  if (!timeUp && !allDone) return false;
+
+  if (nxt === "themes") {
+    // claim by pushing the timer 2 min out (compare-and-swap) so only one caller runs the AI step;
+    // if it crashes, the lock expires and the next tick retries
+    const lock = new Date(Date.now() + 120_000).toISOString();
+    let q = db().from("rooms").update({ phase_ends_at: lock }).eq("id", r).eq("phase", "free");
+    q = room.phase_ends_at ? q.eq("phase_ends_at", room.phase_ends_at) : q.is("phase_ends_at", null);
+    const { data } = await q.select("id");
+    if (!data?.length) return false;
+    await generateThemes(r);
+    return setPhase(r, "themes", "free");
+  }
+  return setPhase(r, nxt, room.phase);
+}
+
+/** lobby → post automatically once `expected` people have joined */
+export async function maybeStart(r: string) {
+  const room = await getRoom(r);
+  if (!room || room.phase !== "lobby") return false;
+  const { count } = await db().from("participants").select("*", { count: "exact", head: true }).eq("room_id", r);
+  if ((count ?? 0) >= room.expected) return setPhase(r, "post", "lobby");
   return false;
 }
 

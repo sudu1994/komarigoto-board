@@ -105,7 +105,7 @@ function Screen({ r, demoPhase }: { r: string; demoPhase: Phase | null }) {
           </div>
         )}
         <div style={{ flex: 1 }} />
-        {["post", "react", "vote"].includes(ph) && (
+        {["post", "react", "vote", "free"].includes(ph) && (
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end", maxWidth: "50%" }}>
             <span style={{ fontSize: 26, fontWeight: 900, marginRight: 6 }}>完了 {doneIds.size}/{room.expected}</span>
             {board.participants.map((p) => (
