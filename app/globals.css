@@ -1,0 +1,136 @@
+:root {
+  --paper: #f4ebdd;
+  --paper-2: #fbf5ea;
+  --ink: #1e2a44;
+  --ink-soft: #4a5368;
+  --tomato: #d94a33;
+  --tomato-ink: #b2361f;
+  --mustard: #f2b33d;
+  --mint: #7cc6a4;
+  --pink: #f4a7b9;
+  --sky: #9cc8e8;
+  --line: 3px solid var(--ink);
+  --shadow: 4px 4px 0 var(--ink);
+  --display: "Dela Gothic One", "Hiragino Sans", system-ui, sans-serif;
+  --body: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Hiragino Sans", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--body);
+  color: var(--ink);
+  background-color: var(--paper);
+  background-image: radial-gradient(rgba(30, 42, 68, 0.09) 1px, transparent 1.4px);
+  background-size: 14px 14px;
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+button { font-family: inherit; color: inherit; cursor: pointer; }
+input, textarea { font-family: inherit; font-size: 17px; color: var(--ink); }
+
+.display { font-family: var(--display); font-weight: 400; letter-spacing: 0.02em; }
+
+/* ---------- buttons ---------- */
+.btn {
+  border: var(--line);
+  box-shadow: var(--shadow);
+  background: var(--paper-2);
+  border-radius: 14px;
+  padding: 12px 18px;
+  font-size: 17px;
+  font-weight: 700;
+  transition: transform 0.06s, box-shadow 0.06s;
+  touch-action: manipulation;
+}
+.btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+.btn:disabled { opacity: 0.45; }
+.btn-red { background: var(--tomato); color: var(--paper-2); }
+.btn-yellow { background: var(--mustard); }
+.btn-mint { background: var(--mint); }
+.btn-big { font-family: var(--display); font-weight: 400; font-size: 22px; padding: 16px 22px; width: 100%; }
+
+/* ---------- sticky notes ---------- */
+.note {
+  position: relative;
+  border: var(--line);
+  border-radius: 6px 6px 18px 6px;
+  box-shadow: var(--shadow);
+  padding: 14px 14px 10px;
+  background: var(--mustard);
+}
+.note::before { /* tape */
+  content: "";
+  position: absolute;
+  top: -10px; left: 50%;
+  width: 64px; height: 18px;
+  transform: translateX(-50%) rotate(-3deg);
+  background: rgba(251, 245, 234, 0.75);
+  border: 2px solid rgba(30, 42, 68, 0.25);
+}
+.c0 { background: var(--mustard); }
+.c1 { background: var(--mint); }
+.c2 { background: var(--pink); }
+.c3 { background: var(--sky); }
+.c4 { background: var(--paper-2); }
+.tilt0 { transform: rotate(-1.2deg); }
+.tilt1 { transform: rotate(0.9deg); }
+.tilt2 { transform: rotate(-0.4deg); }
+.tilt3 { transform: rotate(1.5deg); }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  border: 2px solid var(--ink); border-radius: 999px;
+  padding: 3px 10px; font-size: 14px; font-weight: 700; background: var(--paper-2);
+}
+.chip.on { background: var(--tomato); color: var(--paper-2); }
+
+/* ---------- stamps & pops ---------- */
+@keyframes stampIn {
+  0% { transform: scale(2.4) rotate(-18deg); opacity: 0; }
+  60% { transform: scale(0.9) rotate(-8deg); opacity: 1; }
+  100% { transform: scale(1) rotate(-10deg); opacity: 1; }
+}
+@keyframes popIn {
+  0% { transform: scale(0.3) rotate(-8deg); opacity: 0; }
+  55% { transform: scale(1.12) rotate(3deg); opacity: 1; }
+  75% { transform: scale(0.96) rotate(-2deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+/* uses the separate `translate` property so a note's tilt (transform) survives the animation */
+@keyframes fadeUp { from { translate: 0 16px; opacity: 0; } to { translate: 0 0; opacity: 1; } }
+@keyframes wobble { 0%,100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+@keyframes confetti {
+  0% { transform: translate(0, 0) rotate(0); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity: 0; }
+}
+.fade-up { animation: fadeUp 0.35s ease-out both; }
+
+.nice-overlay {
+  position: fixed; inset: 0; z-index: 50;
+  display: grid; place-items: center;
+  background: rgba(30, 42, 68, 0.35);
+  pointer-events: none;
+}
+.nice-card {
+  animation: popIn 0.6s cubic-bezier(.2,1.4,.4,1) both;
+  background: var(--tomato); color: var(--paper-2);
+  border: 4px solid var(--ink); box-shadow: 8px 8px 0 var(--ink);
+  border-radius: 24px; padding: 22px 26px; max-width: 88vw; text-align: center;
+}
+.burst { position: fixed; left: 50%; top: 50%; width: 12px; height: 16px; border: 2px solid var(--ink); animation: confetti 1.1s ease-out forwards; }
+
+.toast {
+  position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 60;
+  background: var(--ink); color: var(--paper-2); padding: 10px 16px; border-radius: 12px;
+  font-weight: 700; max-width: 90vw; animation: fadeUp 0.25s both;
+}
+
+.offline {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 70; text-align: center;
+  background: var(--tomato); color: var(--paper-2); font-weight: 700; padding: 6px; font-size: 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition: none !important; }
+}
