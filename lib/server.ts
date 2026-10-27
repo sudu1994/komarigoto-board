@@ -3,7 +3,7 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { createHash, randomBytes, timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
 import { generateThemes } from "./themes";
-import { DEFAULT_EXPECTED, nextPhase, PHASE_SECONDS, Phase, TIMED_PHASES } from "./phases";
+import { DEFAULT_EXPECTED, nextPhase, PHASE_MIN_SECONDS, PHASE_SECONDS, Phase, START_AT, START_FALLBACK_SECONDS, TIMED_PHASES } from "./phases";
 
 let _db: SupabaseClient | null = null;
 export function db() {
@@ -42,7 +42,7 @@ export async function ensureRoom(r: string) {
 
 export async function getRoom(r: string) {
   const { data } = await db().from("rooms").select("*").eq("id", r).single();
-  return data as { id: string; phase: Phase; phase_ends_at: string | null; expected: number; nice_threshold: number } | null;
+  return data as { id: string; phase: Phase; phase_ends_at: string | null; updated_at: string; expected: number; nice_threshold: number } | null;
 }
 
 /** verifies pid+secret; returns participant row or null */
@@ -71,17 +71,30 @@ export async function setPhase(r: string, to: Phase, from?: Phase) {
 export async function maybeAdvance(r: string) {
   const room = await getRoom(r);
   if (!room) return false;
+  if (room.phase === "lobby") return maybeStart(r);
   const nxt = nextPhase(room.phase);
   if (!nxt || !TIMED_PHASES.includes(room.phase)) return false;
-  const timeUp = room.phase_ends_at && new Date(room.phase_ends_at).getTime() <= Date.now();
-  const { count } = await db().from("done").select("*", { count: "exact", head: true }).eq("room_id", r).eq("phase", room.phase);
-  const allDone = (count ?? 0) >= room.expected;
-  if (!timeUp && !allDone) return false;
+  const now = Date.now();
+  const timeUp = !!room.phase_ends_at && new Date(room.phase_ends_at).getTime() <= now;
+
+  if (!timeUp) {
+    const { count } = await db().from("done").select("*", { count: "exact", head: true }).eq("room_id", r).eq("phase", room.phase);
+    if ((count ?? 0) < room.expected) return false;
+    // everyone's done — but hold until the phase minimum, by pulling the timer in to that point
+    const minEnd = new Date(room.updated_at).getTime() + (PHASE_MIN_SECONDS[room.phase] ?? 0) * 1000;
+    if (minEnd > now) {
+      const cur = room.phase_ends_at ? new Date(room.phase_ends_at).getTime() : Infinity;
+      if (minEnd < cur) {
+        await db().from("rooms").update({ phase_ends_at: new Date(minEnd).toISOString() }).eq("id", r).eq("phase", room.phase);
+      }
+      return false;
+    }
+  }
 
   if (nxt === "themes") {
     // claim by pushing the timer 2 min out (compare-and-swap) so only one caller runs the AI step;
     // if it crashes, the lock expires and the next tick retries
-    const lock = new Date(Date.now() + 120_000).toISOString();
+    const lock = new Date(now + 120_000).toISOString();
     let q = db().from("rooms").update({ phase_ends_at: lock }).eq("id", r).eq("phase", "free");
     q = room.phase_ends_at ? q.eq("phase_ends_at", room.phase_ends_at) : q.is("phase_ends_at", null);
     const { data } = await q.select("id");
@@ -92,12 +105,26 @@ export async function maybeAdvance(r: string) {
   return setPhase(r, nxt, room.phase);
 }
 
-/** lobby → post automatically once `expected` people have joined */
+/** lobby → post: at START_AT joins, or START_FALLBACK_SECONDS after the DEFAULT_EXPECTED-th join */
 export async function maybeStart(r: string) {
   const room = await getRoom(r);
   if (!room || room.phase !== "lobby") return false;
   const { count } = await db().from("participants").select("*", { count: "exact", head: true }).eq("room_id", r);
-  if ((count ?? 0) >= room.expected) return setPhase(r, "post", "lobby");
+  const n = count ?? 0;
+  if (n >= START_AT) return setPhase(r, "post", "lobby");
+  if (n >= room.expected) {
+    if (!room.phase_ends_at) {
+      // start the fallback countdown (shown on the monitor and phones)
+      await db()
+        .from("rooms")
+        .update({ phase_ends_at: new Date(Date.now() + START_FALLBACK_SECONDS * 1000).toISOString() })
+        .eq("id", r)
+        .eq("phase", "lobby")
+        .is("phase_ends_at", null);
+      return false;
+    }
+    if (new Date(room.phase_ends_at).getTime() <= Date.now()) return setPhase(r, "post", "lobby");
+  }
   return false;
 }
 

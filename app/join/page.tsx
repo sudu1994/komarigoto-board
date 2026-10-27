@@ -289,7 +289,7 @@ function Lobby({ board }: BodyProps) {
     <div style={{ padding: 20, textAlign: "center" }}>
       <Komaru size={130} mood="happy" />
       <div className="display" style={{ fontSize: 26, marginTop: 10 }}>参加できたよ！</div>
-      <p style={{ fontWeight: 700 }}>スタートまでちょっと待っててね</p>
+      <p style={{ fontWeight: 700 }}>みんながそろったら自動でスタートするよ</p>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginTop: 18 }}>
         {board.participants.map((x, i) => (
           <span key={x.id} className={`chip fade-up`} style={{ animationDelay: `${i * 0.05}s` }}>{x.nickname}</span>

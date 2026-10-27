@@ -34,6 +34,11 @@ function Screen({ r, demoPhase }: { r: string; demoPhase: Phase | null }) {
   const room = board.room;
   const left = useCountdown(room?.phase_ends_at);
 
+  // on open: make sure the room exists (so the lobby + QR render before anyone joins)
+  useEffect(() => {
+    if (!demo) api("tick", { r });
+  }, [r, demo]);
+
   // timer ran out → ask the server to move on (it re-checks, so many screens are safe)
   const ticked = useRef<string | null>(null);
   useEffect(() => {
@@ -71,7 +76,7 @@ function Screen({ r, demoPhase }: { r: string; demoPhase: Phase | null }) {
     return (
       <Shell>
         <div style={{ display: "grid", placeItems: "center", height: "100%", fontSize: 32 }}>
-          {online ? "読み込み中…（管理画面でスタートするとルームができます）" : "接続できません"}
+          {online ? "読み込み中…" : "接続できません"}
         </div>
       </Shell>
     );

@@ -6,7 +6,7 @@ export async function POST(req: Request) {
   const me = await who(b as { r: string; pid: string; secret: string });
   if (!me) return fail("参加し直してね", 401);
   const room = await getRoom(me.room_id);
-  if (!room || room.phase !== "vote") return fail("いまは投票タイムじゃないよ");
+  if (!room || !["vote", "free"].includes(room.phase)) return fail("いまは投票タイムじゃないよ");
   const postId = String(b.postId ?? "");
   if (!postId) return fail("対象がありません");
 

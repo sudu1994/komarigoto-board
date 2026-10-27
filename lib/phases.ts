@@ -5,10 +5,10 @@ export const PHASES: Phase[] = ["lobby", "post", "react", "vote", "free", "theme
 /** default seconds per phase (null = no timer) */
 export const PHASE_SECONDS: Record<Phase, number | null> = {
   lobby: null,
-  post: 600,
+  post: 720,
   react: 600,
-  vote: 300,
-  free: 600,
+  vote: 480,
+  free: 900,
   themes: null,
 };
 
@@ -24,16 +24,28 @@ export const PHASE_LABEL: Record<Phase, string> = {
 };
 
 export const PHASE_HINT: Record<Phase, string> = {
-  lobby: "みんなが集まるまで待っててね",
+  lobby: "みんながそろったら自動でスタートするよ",
   post: "困りごとをどんどん書こう（匿名だよ）。書けたら「完了」を押してね",
   react: "「わかる！」やコメントで反応しよう。終わったら「完了」",
   vote: "いいなと思う困りごとに3票まで投票！終わったら「完了」",
-  free: "上位の困りごとに解決案💡を書こう。スレッドで話そう。終わったら「完了」",
+  free: "上位の困りごとに解決案💡を書こう。まだ投票してない人はここでもOK。終わったら「完了」",
   themes: "画面を見てね！みんなの困りごとをテーマにまとめたよ",
 };
 
 /** people who must press 完了 (and who auto-start the lobby): 5 in the room, the leader is in a 1-on-1 */
 export const DEFAULT_EXPECTED = 5;
+/** lobby starts when this many have joined… */
+export const START_AT = 6;
+/** …or this long after the DEFAULT_EXPECTED-th person joined (a late or missing member can't block the start) */
+export const START_FALLBACK_SECONDS = 120;
+
+/** 完了 can only end a phase after this much time, so the board lasts through the 1-on-1s */
+export const PHASE_MIN_SECONDS: Partial<Record<Phase, number>> = {
+  post: 480,
+  react: 360,
+  vote: 300,
+  free: 600,
+};
 export const TIMED_PHASES: Phase[] = ["post", "react", "vote", "free"];
 
 export const VOTES_PER_PERSON = 3;
